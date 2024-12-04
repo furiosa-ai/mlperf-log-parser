@@ -1,9 +1,7 @@
 use serde_value::Value;
 use std::collections::BTreeMap;
-use std::collections::HashMap; // 상단에 BTreeMap import 추가
 
 use serde_json::Value as JsonValue;
-use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 
@@ -149,45 +147,41 @@ pub fn parse_mlperf_results(text: &str) -> Value {
     Value::Map(sections)
 }
 
-pub fn save_summary_as_json(summary_file: &str, output_file: &str) -> io::Result<()> {
-    let file = File::open(summary_file)?;
-    let reader = BufReader::new(file);
-    let text: String = reader.lines().collect::<io::Result<Vec<_>>>()?.join("\n");
-
-    let summary = parse_mlperf_results(&text);
-
-    let json_value =
-        serde_json::to_value(&summary).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-    let mut output = File::create(output_file)?;
-    serde_json::to_writer_pretty(&mut output, &json_value)?;
-    Ok(())
-}
-
-pub fn save_summary_as_yaml(summary_file: &str, output_file: &str) -> io::Result<()> {
-    let file = File::open(summary_file)?;
-    let reader = BufReader::new(file);
-    let text: String = reader.lines().collect::<io::Result<Vec<_>>>()?.join("\n");
-
-    let summary = parse_mlperf_results(&text);
-
-    let mut output = File::create(output_file)?;
-    serde_yaml::to_writer(&mut output, &summary)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    Ok(())
-}
-
 pub fn save_summary(summary_file: &str, output_file: &str, format: &str) -> io::Result<()> {
-    if format == "json" {
-        save_summary_as_json(summary_file, output_file)
-    } else if format == "yaml" {
-        save_summary_as_yaml(summary_file, output_file)
-    } else {
-        Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Invalid format. Use 'json' or 'yaml'.",
-        ))
+    // Read the summary file
+    let file = File::open(summary_file)?;
+    let reader = BufReader::new(file);
+    let text: String = reader.lines().collect::<io::Result<Vec<_>>>()?.join("\n");
+
+    // Parse the content
+    let summary = parse_mlperf_results(&text);
+
+    // Write to output file
+    let mut output = File::create(output_file)?;
+    match format.to_lowercase().as_str() {
+        "json" => {
+            output.write_all(
+                serde_json::to_string_pretty(&summary)
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
+                    .as_bytes(),
+            )?;
+        }
+        "yaml" => {
+            output.write_all(
+                serde_yaml::to_string(&summary)
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
+                    .as_bytes(),
+            )?;
+        }
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Unsupported output format. Only json or yaml are supported.",
+            ));
+        }
     }
+
+    Ok(())
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -208,7 +202,7 @@ pub fn parse_mlperf_log_detail(text: &str) -> io::Result<Vec<MLLogEntry>> {
             continue;
         }
 
-        // ":::MLLOG" 프리픽스 제거 후 JSON 파싱
+        // Remove ":::MLLOG" prefix and parse JSON
         if let Some(json_str) = line.strip_prefix(":::MLLOG ") {
             match serde_json::from_str::<JsonValue>(json_str) {
                 Ok(json) => {
@@ -244,7 +238,7 @@ pub fn parse_mlperf_log_detail(text: &str) -> io::Result<Vec<MLLogEntry>> {
                     }
                 }
                 Err(e) => {
-                    eprintln!("JSON 파싱 에러 (라인 {}): {}", line_no + 1, e);
+                    eprintln!("JSON parsing error (line {}): {}", line_no + 1, e);
                     continue;
                 }
             }
@@ -265,7 +259,7 @@ pub fn parse_mlperf_log_detail_file(file_path: &str) -> io::Result<Vec<MLLogEntr
 pub fn save_log_detail_as_json(input_file: &str, output_file: &str) -> io::Result<()> {
     let entries = parse_mlperf_log_detail_file(input_file)?;
 
-    // MLLogEntry를 JsonValue로 변환
+    // Convert MLLogEntry to JsonValue
     let json_entries: Vec<JsonValue> = entries
         .iter()
         .map(|entry| {
