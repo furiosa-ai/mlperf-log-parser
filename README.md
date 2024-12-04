@@ -1,34 +1,36 @@
+```README.md
+// Start of Selection
 # MLPerf Log Parser
 
-MLPerf loadgen 로그 파일을 파싱하여 JSON 또는 YAML 형식으로 변환하는 도구입니다.
+A tool to parse MLPerf loadgen log files and convert them to JSON or YAML format.
 
-## 기능
+## Features
 
-- MLPerf loadgen summary 로그 파일 파싱 (`*log_summary.txt`)
-- MLPerf loadgen detail 로그 파일 파싱 (`*detail.txt`) 
-- JSON 또는 YAML 형식으로 출력 지원
+- Parse MLPerf loadgen summary log files (`*log_summary.txt`)
+- Parse MLPerf loadgen detail log files (`*detail.txt`)
+- Support output in JSON or YAML format
 
-## 설치
-
-```bash
-cargo install https://github.com/furiosa-ai/mlperf-log-parser.git
-```
-
-## 사용법
-
-### 명령행 인터페이스 (CLI)
+## Installation
 
 ```bash
-# Summary 로그 파일을 JSON으로 변환
-mlperf-log-parser summary -f json mlperf_log_summary.txt mlperf_log_summary.json
-
-# Detail 로그 파일을 YAML로 변환
-mlperf-log-parser detail -f yaml mlperf_log_detail.txt mlperf_log_detail.yaml
+cargo install --git https://github.com/furiosa-ai/mlperf-log-parser.git --branch v4.1
 ```
 
-## 출력 형식
+## Usage
 
-### JSON 출력 예시
+### Command Line Interface (CLI)
+
+```bash
+# Convert summary log file to JSON
+mlperf-log-parser log-summary -f json mlperf_log_summary.txt mlperf_log_summary.json
+
+# Convert detail log file to YAML
+mlperf-log-parser log-detail -f yaml mlperf_log_detail.txt mlperf_log_detail.yaml
+```
+
+## Output Format
+
+### Example JSON Output
 
 ```json
 {
@@ -43,7 +45,7 @@ mlperf-log-parser detail -f yaml mlperf_log_detail.txt mlperf_log_detail.yaml
 }
 ```
 
-### YAML 출력 예시
+### Example YAML Output
 
 ```yaml
 test_parameters_used:
@@ -55,12 +57,12 @@ test_parameters_used:
   target_latency_ns: 10000000
 ```
 
-## 라이선스
+## License
 
 MIT License
 
-## 기여하기
+## Contributing
 
-버그 리포트, 기능 제안, 풀 리퀘스트는 언제나 환영합니다.
-이슈를 생성하거나 풀 리퀘스트를 보내주시기 바랍니다.
+Bug reports, feature suggestions, and pull requests are always welcome.
+Please create an issue or submit a pull request.
 
