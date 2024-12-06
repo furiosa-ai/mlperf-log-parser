@@ -1,0 +1,68 @@
+use crate::log_summary::model::*;
+
+grammar;
+
+// Token Priority
+match {
+    r"={3,}" => SectionSeparator,
+} else {
+    r"(\r\n|\n)" => SingleLine,
+    r"[^=]{3,}[^\n\r]*" => LineWithoutSeparator,
+} else {
+    r"[^\n]+" => Line
+}
+
+// Grammar
+pub Document: Document = {
+    <sections:Section*> => Document { sections }
+}
+
+Section: Section = {
+    <format:SectionTable> => Section::Table(format),
+    <note:SectionNote> => Section::Note(note)
+}
+
+SectionNote: SectionNote = {
+    <entry:Message> <_s:SingleLine+> => SectionNote { message: entry }
+}
+
+SectionTable: SectionTable = {
+    <title:SectionHeader> <entries:SectionContent> <_s:SingleLine+> => {
+        let entries = build_structure_by_priority(entries);
+        SectionTable {
+            title,
+            entries
+        }
+    }
+}
+
+SectionContent: Vec<Message> = {
+    <entry:Entry> => vec![entry],
+    <entry:Entry> <rest:SectionContent> => {
+        let mut entries = vec![entry];
+        entries.extend(rest);
+        entries
+    }
+}
+
+SectionHeader: String = {
+    <_sep1:SectionSeparator> <_s1:SingleLine> <title:Title> <_s2:SingleLine> <_sep2:SectionSeparator> <_s3:SingleLine> => title
+}
+
+Entry: Message = {
+    <message:Message> <_s:SingleLine> => message
+}
+
+Title: String = {
+    <line:LineWithoutSeparator> => line.to_string()
+}
+
+Message: Message = {
+    <line:Line> => {
+        let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
+        Message {
+            indent_level: indent_level.try_into().unwrap(),
+            message: line.to_string().trim().to_string()
+        }
+    }
+}
