@@ -64,5 +64,6 @@ No errors encountered during test.
     let tokens = Lexer::new(input);
     let parser = LogSummaryParser::new();
     let result = parser.parse(tokens);
+    println!("{:?}", result);
     result.unwrap();
 }

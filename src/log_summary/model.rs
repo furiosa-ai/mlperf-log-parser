@@ -1,32 +1,69 @@
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
-pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<Message> {
-    let mut result: Vec<Message> = Vec::new();
-    let mut stack: Vec<Message> = Vec::new();
+#[derive(Debug, Clone)]
+pub struct RcSectionEntry {
+    pub indent_level: i32,
+    pub message: String,
+    pub children: Vec<Rc<RefCell<RcSectionEntry>>>,
+}
+
+// Start Generation Here
+pub fn convert_rc_section_entries(entries: Vec<Rc<RefCell<RcSectionEntry>>>) -> Vec<SectionEntry> {
+    entries
+        .into_iter()
+        .map(|rc_entry| {
+            let entry = rc_entry.borrow();
+            SectionEntry {
+                indent_level: entry.indent_level,
+                message: entry.message.clone(),
+                children: if entry.children.is_empty() {
+                    Vec::new()
+                } else {
+                    convert_rc_section_entries(entry.children.clone())
+                },
+            }
+        })
+        .collect()
+}
+
+// Start of Selection
+pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
+    let mut result: Vec<Rc<RefCell<RcSectionEntry>>> = Vec::new();
+    let mut stack: Vec<Rc<RefCell<RcSectionEntry>>> = Vec::new();
 
     for entry in entries {
-        // Remove entries from stack with priority >= current entry
-        while !stack.is_empty() && stack.last().unwrap().indent_level >= entry.indent_level {
-            stack.pop();
-        }
-
-        // If stack is not empty, add current entry as child of top entry
-        if !stack.is_empty() {
-            if let Some(last) = stack.last_mut() {
-                last.message.push_str("\n");
-                last.message.push_str(&entry.message);
+        // 현재 엔트리보다 들여쓰기가 크거나 같은 스택의 엔트리들 제거
+        while let Some(last_entry) = stack.last() {
+            if last_entry.borrow().indent_level >= entry.indent_level {
+                stack.pop();
+            } else {
+                break;
             }
-        } else {
-            // If stack is empty, this is top level so add to result list
-            result.push(entry.clone());
         }
 
-        // Add current entry to stack
-        stack.push(entry);
+        let section_entry = Rc::new(RefCell::new(RcSectionEntry {
+            indent_level: entry.indent_level,
+            message: entry.message.clone(),
+            children: Vec::new(),
+        }));
+
+        // 스택이 비어있지 않으면 현재 엔트리를 스택 최상위 엔트리의 자식으로 추가
+        if let Some(parent) = stack.last() {
+            // 자식으로 추가하기 위해 Rc 복제
+            parent.borrow_mut().children.push(Rc::clone(&section_entry));
+        } else {
+            // 스택이 비어있으면 최상위 레벨이므로 결과 목록에 추가
+            result.push(Rc::clone(&section_entry));
+        }
+
+        // 현재 엔트리를 스택에 추가
+        stack.push(Rc::clone(&section_entry));
     }
 
-    result
+    convert_rc_section_entries(result)
 }
 
 fn reduce_dict(
@@ -96,7 +133,8 @@ impl Entry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SectionEntry {
     pub indent_level: i32,
-    pub children: Vec<Entry>,
+    pub message: String,
+    pub children: Vec<SectionEntry>,
 }
 
 impl SectionEntry {
@@ -225,7 +263,7 @@ pub enum Section {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SectionTable {
     pub title: String,
-    pub entries: Vec<Message>,
+    pub entries: Vec<SectionEntry>,
 }
 
 impl SectionTable {

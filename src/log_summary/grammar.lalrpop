@@ -21,6 +21,7 @@ SectionNote: SectionNote = {
 SectionTable: SectionTable = {
     <title:SectionHeader> <entries:SectionContent> <_s:SingleNewLine+> => {
         let entries = build_structure_by_priority(entries);
+        println!("entries: {:?}", entries);
         SectionTable {
             title,
             entries
@@ -62,8 +63,8 @@ Title: String = {
 
 Message: Message = {
     <line:Line> => {
-        println!("MESSAGE: {}", line);
         let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
+        println!("MESSAGE: {}, indent_level: {}", line, indent_level);
         Message {
             indent_level: indent_level.try_into().unwrap(),
             message: line.to_string().trim().to_string()
