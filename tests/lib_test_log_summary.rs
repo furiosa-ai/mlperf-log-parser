@@ -1,8 +1,9 @@
-use mlperf_log_parser::log_summary::grammar::Document;
+use mlperf_log_parser::log_summary::grammar::LogSummaryParser;
+use mlperf_log_parser::log_summary::lexer::Lexer;
 
 #[test]
 fn test_grammar() {
-    let input = r#"
+    let input = r###"
 ================================================
 MLPerf Results Summary
 ================================================
@@ -56,7 +57,12 @@ performance_sample_count : 13368
 No warnings encountered during test.
 
 No errors encountered during test.
-"#;
-    let result = Document::parse(input);
-    println!("{:?}", result);
+"###;
+
+    println!("{}", input);
+
+    let tokens = Lexer::new(input);
+    let parser = LogSummaryParser::new();
+    let result = parser.parse(tokens);
+    result.unwrap();
 }

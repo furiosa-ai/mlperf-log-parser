@@ -1,20 +1,12 @@
 use crate::log_summary::model::*;
+use crate::log_summary::lexer::{Lexer, Token, LexicalError};
 
 grammar;
 
-// Token Priority
-match {
-    r"={3,}" => SectionSeparator,
-} else {
-    r"(\r\n|\n)" => SingleLine,
-    r"[^=]{3,}[^\n\r]*" => LineWithoutSeparator,
-} else {
-    r"[^\n]+" => Line
-}
-
 // Grammar
-pub Document: Document = {
-    <sections:Section*> => Document { sections }
+
+pub LogSummary: Document = {
+    <_s1:SingleNewLine*> <sections:Section*> => Document { sections }
 }
 
 Section: Section = {
@@ -23,17 +15,21 @@ Section: Section = {
 }
 
 SectionNote: SectionNote = {
-    <entry:Message> <_s:SingleLine+> => SectionNote { message: entry }
+    <entry:Message> <_s:SingleNewLine+> => SectionNote { message: entry }
 }
 
 SectionTable: SectionTable = {
-    <title:SectionHeader> <entries:SectionContent> <_s:SingleLine+> => {
+    <title:SectionHeader> <entries:SectionContent> <_s:SingleNewLine+> => {
         let entries = build_structure_by_priority(entries);
         SectionTable {
             title,
             entries
         }
     }
+}
+
+SectionHeader: String = {
+    <_sep1:SectionSeparator> <_s1:SingleNewLine> <title:Title> <_s2:SingleNewLine> <_sep2:SectionSeparator> <_s3:SingleNewLine> => title
 }
 
 SectionContent: Vec<Message> = {
@@ -45,20 +41,28 @@ SectionContent: Vec<Message> = {
     }
 }
 
-SectionHeader: String = {
-    <_sep1:SectionSeparator> <_s1:SingleLine> <title:Title> <_s2:SingleLine> <_sep2:SectionSeparator> <_s3:SingleLine> => title
+SectionSeparator: String = {
+    <sep:SectionSeparatorLine> => {
+        println!("SECTION SEPARATOR: {}", sep);
+        sep.to_string()
+    }
 }
 
+
 Entry: Message = {
-    <message:Message> <_s:SingleLine> => message
+    <message:Message> <_s:SingleNewLine> => message
 }
 
 Title: String = {
-    <line:LineWithoutSeparator> => line.to_string()
+    <line:LineWithoutSeparator> => {
+        println!("TITLE: {}", line);
+        line.to_string()
+    }
 }
 
 Message: Message = {
     <line:Line> => {
+        println!("MESSAGE: {}", line);
         let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
         Message {
             indent_level: indent_level.try_into().unwrap(),
@@ -66,3 +70,17 @@ Message: Message = {
         }
     }
 }
+
+// Token Priority
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum Token {
+        SingleNewLine => Token::SingleNewLine,
+        SectionSeparatorLine => Token::SectionSeparatorLine(<String>),
+        LineWithoutSeparator => Token::LineWithoutSeparator(<String>),
+        Line => Token::Line(<String>),
+    }
+}
+
