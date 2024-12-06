@@ -54,7 +54,7 @@ Entry: Message = {
 }
 
 Title: String = {
-    <line:LineWithoutSeparator> => {
+    <line:Line> => {
         println!("TITLE: {}", line);
         line.to_string()
     }
@@ -79,7 +79,6 @@ extern {
     enum Token {
         SingleNewLine => Token::SingleNewLine,
         SectionSeparatorLine => Token::SectionSeparatorLine(<String>),
-        LineWithoutSeparator => Token::LineWithoutSeparator(<String>),
         Line => Token::Line(<String>),
     }
 }

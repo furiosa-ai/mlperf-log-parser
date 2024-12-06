@@ -17,9 +17,8 @@ pub enum Token {
     #[regex(r"={3,}", |lex| lex.slice().to_string(), priority = 4)]
     SectionSeparatorLine(String),
 
-    #[regex(r"[^=\n]{1,3}[^\n]*", |lex| lex.slice().to_string(), priority = 3)]
-    LineWithoutSeparator(String),
-
+    //#[regex(r"[^=\n]{1,3}[^\n]*", |lex| lex.slice().to_string(), priority = 2)]
+    //LineWithoutSeparator(String),
     #[regex(r"[^\n]+", |lex| lex.slice().to_string(), priority = 2)]
     Line(String),
 }
