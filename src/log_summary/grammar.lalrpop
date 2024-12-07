@@ -4,9 +4,8 @@ use crate::log_summary::lexer::{Lexer, Token, LexicalError};
 grammar;
 
 // Grammar
-
 pub LogSummary: Document = {
-    <_s1:SingleNewLine*> <sections:Section*> => Document { sections }
+    <_s1:SingleNewLine*> <sections:Section*> <_e:EOF> => Document { sections },
 }
 
 Section: Section = {
@@ -15,11 +14,11 @@ Section: Section = {
 }
 
 SectionNote: SectionNote = {
-    <entry:Message> <_s:SingleNewLine+> => SectionNote { message: entry }
+    <entry:Message> <_s:SingleNewLine> => SectionNote { message: entry }
 }
 
 SectionTable: SectionTable = {
-    <title:SectionHeader> <entries:SectionContent> <_s:SingleNewLine+> => {
+    <title:SectionHeader> <_s1:SingleNewLine> <entries:SectionContent> <_s2:SingleNewLine> => {
         let entries = build_structure_by_priority(entries);
         println!("entries: {:?}", entries);
         SectionTable {
@@ -30,16 +29,11 @@ SectionTable: SectionTable = {
 }
 
 SectionHeader: String = {
-    <_sep1:SectionSeparator> <_s1:SingleNewLine> <title:Title> <_s2:SingleNewLine> <_sep2:SectionSeparator> <_s3:SingleNewLine> => title
+    <_sep1:SectionSeparator> <_s1:SingleNewLine> <title:Title> <_s2:SingleNewLine> <_sep2:SectionSeparator> => title
 }
 
 SectionContent: Vec<Message> = {
-    <entry:Entry> => vec![entry],
-    <entry:Entry> <rest:SectionContent> => {
-        let mut entries = vec![entry];
-        entries.extend(rest);
-        entries
-    }
+    <entry:Entry*> => entry.into_iter().collect()
 }
 
 SectionSeparator: String = {
@@ -81,6 +75,7 @@ extern {
         SingleNewLine => Token::SingleNewLine,
         SectionSeparatorLine => Token::SectionSeparatorLine(<String>),
         Line => Token::Line(<String>),
+        EOF => Token::EOF,
     }
 }
 

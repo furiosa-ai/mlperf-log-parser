@@ -1,20 +1,19 @@
 use serde::{Deserialize, Serialize};
+use serde_value::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub struct RcSectionEntry {
-    pub indent_level: i32,
-    pub message: String,
+    pub message: Message,
     pub children: Vec<Rc<RefCell<RcSectionEntry>>>,
 }
 
 impl From<RcSectionEntry> for SectionEntry {
     fn from(entry: RcSectionEntry) -> Self {
         SectionEntry {
-            indent_level: entry.indent_level,
-            message: entry.message,
+            entry: Entry::from(entry.message),
             children: RcSectionEntryVec(entry.children).into(),
         }
     }
@@ -46,7 +45,7 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
     for entry in entries {
         // 현재 엔트리보다 들여쓰기가 크거나 같은 스택의 엔트리들 제거
         while let Some(last_entry) = stack.last() {
-            if last_entry.borrow().indent_level >= entry.indent_level {
+            if last_entry.borrow().message.indent_level >= entry.indent_level {
                 stack.pop();
             } else {
                 break;
@@ -54,12 +53,11 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
         }
 
         let section_entry = Rc::new(RefCell::new(RcSectionEntry {
-            indent_level: entry.indent_level,
-            message: entry.message.clone(),
+            message: entry,
             children: Vec::new(),
         }));
 
-        // 스택이 비어있지 않으면 현재 엔트리를 스택 최��위 엔트리의 자식으로 추가
+        // 스택이 비어있지 않으면 현재 엔트리를 스택 최상위 엔트리의 자식으로 추가
         if let Some(parent) = stack.last() {
             // 자식으로 추가하기 위해 Rc 복제
             parent.borrow_mut().children.push(Rc::clone(&section_entry));
@@ -77,16 +75,14 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
 }
 
 fn reduce_dict(
-    result_dict: Vec<HashMap<String, serde_json::Value>>,
-) -> HashMap<String, serde_json::Value> {
+    result_dict: Vec<HashMap<String, serde_value::Value>>,
+) -> HashMap<String, serde_value::Value> {
     let mut merged_dict = HashMap::new();
     for d in result_dict {
         for (key, value) in d {
             if key == "note" {
-                let notes = merged_dict
-                    .entry(key)
-                    .or_insert_with(|| serde_json::Value::Array(vec![]));
-                if let serde_json::Value::Array(arr) = notes {
+                let notes = merged_dict.entry(key).or_insert_with(|| Value::Seq(vec![]));
+                if let Value::Seq(arr) = notes {
                     arr.push(value);
                 }
             } else {
@@ -104,11 +100,11 @@ pub struct Message {
 }
 
 impl Message {
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
+    fn to_dict(&self) -> HashMap<String, serde_value::Value> {
         let mut map = HashMap::new();
         map.insert(
             "message".to_string(),
-            serde_json::Value::String(self.message.clone()),
+            serde_value::Value::String(self.message.clone()),
         );
         map
     }
@@ -116,8 +112,6 @@ impl Message {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Entry {
-    Section(SectionEntry),
-    SectionHeader(SectionHeader),
     KeyValue(KeyValueEntry),
     Message(MessageEntry),
 }
@@ -126,141 +120,165 @@ impl Entry {
     fn priority(&self) -> i32 {
         match self {
             Entry::Message(m) => m.indent_level,
-            _ => 0,
+            Entry::KeyValue(k) => k.indent_level,
         }
     }
 
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
+    fn to_dict(
+        &self,
+        details: Option<HashMap<String, serde_value::Value>>,
+    ) -> HashMap<String, serde_value::Value> {
         match self {
-            Entry::Section(s) => s.to_dict(),
-            Entry::SectionHeader(h) => h.to_dict(),
-            Entry::KeyValue(k) => k.to_dict(),
-            Entry::Message(m) => m.to_dict(),
+            Entry::KeyValue(k) => k.to_dict(details),
+            Entry::Message(m) => m.to_dict(details),
         }
+    }
+}
+
+impl From<Message> for Entry {
+    fn from(msg: Message) -> Self {
+        // key:value 형식인지 확인
+        if msg.message.contains(':') {
+            let parts: Vec<&str> = msg.message.splitn(2, ':').collect();
+            let key = parts[0].trim();
+            let entry = if parts.len() == 2 {
+                let value = parts[1].trim();
+                // 유효한 key:value 쌍이면 KeyValue 반환
+                Entry::KeyValue(KeyValueEntry {
+                    indent_level: msg.indent_level,
+                    key: key.to_string(),
+                    value: Some(value.to_string()),
+                })
+            } else {
+                Entry::KeyValue(KeyValueEntry {
+                    indent_level: msg.indent_level,
+                    key: key.to_string(),
+                    value: None,
+                })
+            };
+            return entry;
+        }
+
+        // key:value 형식이 아니면 Message 반환
+        Entry::Message(MessageEntry {
+            indent_level: msg.indent_level,
+            message: msg.message,
+        })
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SectionEntry {
-    pub indent_level: i32,
-    pub message: String,
+    pub entry: Entry,
     pub children: Vec<SectionEntry>,
 }
 
 impl SectionEntry {
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
-        let mut map = HashMap::new();
-        let details = reduce_dict(self.children.iter().map(|child| child.to_dict()).collect());
-        map.insert(
-            "details".to_string(),
-            serde_json::to_value(details).unwrap(),
-        );
-        map
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SectionHeader {
-    pub title: String,
-}
-
-impl SectionHeader {
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
-        let mut map = HashMap::new();
-        map.insert(
-            "title".to_string(),
-            serde_json::Value::String(self.title.clone()),
-        );
-        map
+    fn to_dict(&self) -> HashMap<String, serde_value::Value> {
+        if self.children.len() > 0 {
+            let details = reduce_dict(
+                self.children
+                    .iter()
+                    .map(|child: &SectionEntry| child.to_dict())
+                    .collect(),
+            );
+            self.entry.to_dict(Some(details))
+        } else {
+            self.entry.to_dict(None)
+        }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyValueEntry {
-    pub key: Option<String>,
+    pub key: String,
     pub value: Option<String>,
     pub indent_level: i32,
-    pub children: Vec<Entry>,
 }
 
 impl KeyValueEntry {
     fn normalize_snakecase_key(&self) -> String {
         self.key
-            .as_ref()
-            .map(|k| {
-                k.trim()
-                    .to_lowercase()
-                    .replace(".", "_")
-                    .replace(" ", "_")
-                    .replace("(", "")
-                    .replace(")", "")
-            })
-            .unwrap_or_default()
+            .trim()
+            .to_lowercase()
+            .replace(".", "_")
+            .replace(" ", "_")
+            .replace("(", "")
+            .replace(")", "")
     }
 
-    fn parse_value(&self) -> serde_json::Value {
+    fn parse_value(&self) -> serde_value::Value {
+        println!("                      value: {:?}", self.value);
         match &self.value {
-            None => serde_json::Value::Null,
+            None => serde_value::to_value(None::<String>).unwrap(),
             Some(v) => {
                 let low_value = v.to_lowercase();
                 if low_value == "yes" {
-                    serde_json::Value::Bool(true)
+                    Value::Bool(true)
                 } else if low_value == "no" {
-                    serde_json::Value::Bool(false)
-                } else if low_value.chars().all(|c| c.is_digit(10)) {
-                    serde_json::Value::Number(low_value.parse().unwrap())
+                    Value::Bool(false)
+                } else if let Ok(num) = low_value.parse::<i64>() {
+                    Value::I64(num)
                 } else if let Ok(f) = low_value.parse::<f64>() {
-                    serde_json::Value::Number(serde_json::Number::from_f64(f).unwrap())
+                    Value::F64(f)
                 } else {
-                    serde_json::Value::String(v.clone())
+                    Value::String(v.clone())
                 }
             }
         }
     }
 
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
-        let mut map = HashMap::new();
+    fn to_dict(
+        &self,
+        details: Option<HashMap<String, serde_value::Value>>,
+    ) -> HashMap<String, serde_value::Value> {
         let key = self.normalize_snakecase_key();
+        let value = self.parse_value();
+        if let Some(details) = details {
+            let value_map: HashMap<String, Value> = HashMap::from([
+                ("value".to_string(), value),
+                (
+                    "details".to_string(),
+                    serde_value::to_value(details).unwrap(),
+                ),
+            ]);
 
-        if !self.children.is_empty() {
-            let mut inner_map = HashMap::new();
-            if self.value.is_some() {
-                inner_map.insert("value".to_string(), self.parse_value());
-            }
-            let details = reduce_dict(self.children.iter().map(|child| child.to_dict()).collect());
-            inner_map.insert(
-                "details".to_string(),
-                serde_json::to_value(details).unwrap(),
-            );
-            map.insert(key, serde_json::to_value(inner_map).unwrap());
+            // {"key": {"value": value, "details": details}}
+            HashMap::from([(key, serde_value::to_value(value_map).unwrap())])
         } else {
-            map.insert(key, self.parse_value());
+            HashMap::from([(key, value)])
         }
-        map
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageEntry {
-    pub message: Option<String>,
+    pub message: String,
     pub indent_level: i32,
-    pub children: Vec<Entry>,
 }
 
 impl MessageEntry {
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
-        let mut map = HashMap::new();
-        if let Some(msg) = &self.message {
-            map.insert("note".to_string(), serde_json::Value::String(msg.clone()));
+    fn to_dict(
+        &self,
+        details: Option<HashMap<String, serde_value::Value>>,
+    ) -> HashMap<String, serde_value::Value> {
+        if let Some(details) = details {
+            // {"note": {"value": "message", "details": details}}
+            HashMap::from([(
+                "note".to_string(),
+                serde_value::to_value(HashMap::from([
+                    ("value".to_string(), Value::String(self.message.clone())),
+                    (
+                        "details".to_string(),
+                        serde_value::to_value(details).unwrap(),
+                    ),
+                ]))
+                .unwrap(),
+            )])
+        } else {
+            // {"note": "message"}
+            HashMap::from([("note".to_string(), Value::String(self.message.clone()))])
         }
-        if !self.children.is_empty() {
-            let details = reduce_dict(self.children.iter().map(|child| child.to_dict()).collect());
-            map.insert(
-                "details".to_string(),
-                serde_json::to_value(details).unwrap(),
-            );
-        }
-        map
     }
 }
 
@@ -286,7 +304,7 @@ impl SectionTable {
             .replace(")", "")
     }
 
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
+    fn to_dict(&self) -> HashMap<String, serde_value::Value> {
         let mut map = HashMap::new();
         let entry_dicts: Vec<_> = self.entries.iter().map(|entry| entry.to_dict()).collect();
 
@@ -299,7 +317,7 @@ impl SectionTable {
 
         map.insert(
             self.normalize_title(&self.title),
-            serde_json::to_value(merged_dict).unwrap(),
+            serde_value::to_value(merged_dict).unwrap(),
         );
         map
     }
@@ -311,11 +329,11 @@ pub struct SectionNote {
 }
 
 impl SectionNote {
-    fn to_dict(&self) -> HashMap<String, serde_json::Value> {
+    fn to_dict(&self) -> HashMap<String, serde_value::Value> {
         let mut map = HashMap::new();
         map.insert(
             "note".to_string(),
-            serde_json::Value::String(self.message.message.clone()),
+            serde_value::Value::String(self.message.message.clone()),
         );
         map
     }
@@ -327,7 +345,7 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn to_dict(&self) -> HashMap<String, serde_json::Value> {
+    pub fn to_dict(&self) -> HashMap<String, serde_value::Value> {
         reduce_dict(
             self.sections
                 .iter()
