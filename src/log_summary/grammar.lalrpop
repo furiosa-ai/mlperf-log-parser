@@ -5,20 +5,20 @@ grammar;
 
 // Grammar
 pub LogSummary: Document = {
-    <_s1:SingleNewLine*> <sections:Section*> <_e:EOF> => Document { sections },
+    <_eos:EndOfSection*> <sections:Section*> <_e:EOF> => Document { sections },
 }
 
 Section: Section = {
-    <format:SectionTable> <_s:SingleNewLine+> => Section::Table(format),
-    <note:SectionNote> <_s:SingleNewLine+> => Section::Note(note)
+    <format:SectionTable> <_s:EndOfSection> => Section::Table(format),
+    <note:SectionNote> <_s:EndOfSection> => Section::Note(note)
 }
 
 SectionNote: SectionNote = {
-    <entry:Message> <_s:SingleNewLine> => SectionNote { message: entry }
+    <entry:Message> => SectionNote { message: entry }
 }
 
 SectionTable: SectionTable = {
-    <title:SectionHeader> <_s1:SingleNewLine> <entries:SectionContent> => {
+    <title:SectionHeader> <entries:SectionContent> => {
         let entries = build_structure_by_priority(entries);
         println!("entries: {:?}", entries);
         SectionTable {
@@ -29,7 +29,7 @@ SectionTable: SectionTable = {
 }
 
 SectionHeader: String = {
-    <_sep1:SectionSeparator> <_s1:SingleNewLine> <title:Title> <_sep2:SectionSeparator> => title
+    <_sep1:SectionSeparator> <title:Title> <_sep2:SectionSeparator> => title
 }
 
 SectionContent: Vec<Message> = {
@@ -43,20 +43,19 @@ SectionSeparator: String = {
     }
 }
 
-
 Entry: Message = {
     <message:Message> => message
 }
 
 Title: String = {
-    <line:Line> <_s:SingleNewLine> => {
+    <line:Line> => {
         println!("TITLE: {}", line);
         line.to_string()
     }
 }
 
 Message: Message = {
-    <line:Line> <_s:SingleNewLine> => {
+    <line:Line> => {
         let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
         println!("MESSAGE: {}, indent_level: {}", line, indent_level);
         Message {
@@ -72,9 +71,9 @@ extern {
     type Error = LexicalError;
 
     enum Token {
-        SingleNewLine => Token::SingleNewLine,
         SectionSeparatorLine => Token::SectionSeparatorLine(<String>),
         Line => Token::Line(<String>),
+        EndOfSection => Token::EndOfSection(<String>),
         EOF => Token::EOF,
     }
 }

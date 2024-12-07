@@ -8,26 +8,27 @@ pub enum LexicalError {
     InvalidToken,
 }
 
+pub fn remove_last_char(s: &str) -> String {
+    s[..s.len() - 1].to_string()
+}
+
 #[derive(Clone, Debug, Logos, PartialEq)]
 #[logos(error = LexicalError)]
 pub enum Token {
-    #[regex(r"(\r\n|\n)")]
-    SingleNewLine,
-
-    #[regex(r"={3,}", |lex| lex.slice().to_string(), priority = 4)]
+    #[regex(r"={3,}(\r\n|\n)", |lex| remove_last_char(lex.slice()), priority = 4)]
     SectionSeparatorLine(String),
 
-    //#[regex(r"[^=\n]{1,3}[^\n]*", |lex| lex.slice().to_string(), priority = 2)]
-    //LineWithoutSeparator(String),
-    #[regex(r"[^\n]+", |lex| lex.slice().to_string(), priority = 2)]
+    #[regex(r"[^\n]+(\r\n|\n)", |lex| remove_last_char(lex.slice()), priority = 2)]
     Line(String),
+
+    #[regex(r"(\r\n|\n)+", |lex| lex.slice().to_string(), priority = 1)]
+    EndOfSection(String),
 
     EOF,
 }
 
 pub struct Lexer<'input> {
     eof_encountered: bool,
-    line_counter: usize,
     token_stream: SpannedIter<'input, Token>,
 }
 
@@ -36,7 +37,6 @@ impl<'input> Lexer<'input> {
         let token_stream = Token::lexer(input).spanned();
         Lexer {
             eof_encountered: false,
-            line_counter: 0,
             token_stream,
         }
     }
@@ -55,9 +55,6 @@ impl Iterator for Lexer<'_> {
                 "TOKEN: {:?}, start: {}, end: {}",
                 token, span.start, span.end
             );
-            if token == Token::SingleNewLine {
-                self.line_counter += 1;
-            }
             Some(Ok((span.start, token, span.end)))
         } else {
             println!("TOKEN EOF");
