@@ -10,26 +10,32 @@ pub struct RcSectionEntry {
     pub children: Vec<Rc<RefCell<RcSectionEntry>>>,
 }
 
-// Start Generation Here
-pub fn convert_rc_section_entries(entries: Vec<Rc<RefCell<RcSectionEntry>>>) -> Vec<SectionEntry> {
-    entries
-        .into_iter()
-        .map(|rc_entry| {
-            let RcSectionEntry {
-                indent_level,
-                message,
-                children,
-            } = Rc::try_unwrap(rc_entry)
-                .expect("Multiple references exist")
-                .into_inner();
+impl From<RcSectionEntry> for SectionEntry {
+    fn from(entry: RcSectionEntry) -> Self {
+        SectionEntry {
+            indent_level: entry.indent_level,
+            message: entry.message,
+            children: RcSectionEntryVec(entry.children).into(),
+        }
+    }
+}
 
-            SectionEntry {
-                indent_level,
-                message,
-                children: convert_rc_section_entries(children),
-            }
-        })
-        .collect()
+// 새로운 타입 정의
+pub struct RcSectionEntryVec(Vec<Rc<RefCell<RcSectionEntry>>>);
+
+impl From<RcSectionEntryVec> for Vec<SectionEntry> {
+    fn from(entries: RcSectionEntryVec) -> Self {
+        entries
+            .0
+            .into_iter()
+            .map(|rc_entry| {
+                Rc::try_unwrap(rc_entry)
+                    .expect("Multiple references exist")
+                    .into_inner()
+                    .into()
+            })
+            .collect()
+    }
 }
 
 // Start of Selection
@@ -53,7 +59,7 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
             children: Vec::new(),
         }));
 
-        // 스택이 비어있지 않으면 현재 엔트리를 스택 최상위 엔트리의 자식으로 추가
+        // 스택이 비어있지 않으면 현재 엔트리를 스택 최��위 엔트리의 자식으로 추가
         if let Some(parent) = stack.last() {
             // 자식으로 추가하기 위해 Rc 복제
             parent.borrow_mut().children.push(Rc::clone(&section_entry));
@@ -67,7 +73,7 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
     }
 
     stack.clear(); // clear all references
-    convert_rc_section_entries(result)
+    RcSectionEntryVec(result).into()
 }
 
 fn reduce_dict(
