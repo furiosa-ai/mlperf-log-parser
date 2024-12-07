@@ -15,15 +15,18 @@ pub fn convert_rc_section_entries(entries: Vec<Rc<RefCell<RcSectionEntry>>>) -> 
     entries
         .into_iter()
         .map(|rc_entry| {
-            let entry = rc_entry.borrow();
+            let RcSectionEntry {
+                indent_level,
+                message,
+                children,
+            } = Rc::try_unwrap(rc_entry)
+                .expect("Multiple references exist")
+                .into_inner();
+
             SectionEntry {
-                indent_level: entry.indent_level,
-                message: entry.message.clone(),
-                children: if entry.children.is_empty() {
-                    Vec::new()
-                } else {
-                    convert_rc_section_entries(entry.children.clone())
-                },
+                indent_level,
+                message,
+                children: convert_rc_section_entries(children),
             }
         })
         .collect()
@@ -63,6 +66,7 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
         stack.push(Rc::clone(&section_entry));
     }
 
+    stack.clear(); // clear all references
     convert_rc_section_entries(result)
 }
 
