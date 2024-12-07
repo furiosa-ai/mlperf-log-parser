@@ -26,6 +26,30 @@ TOP Message
 
 
 
+================================================
+Additional Stats
+================================================
+Min latency (ns)                : 123456
+Max latency (ns)                : 789012
+Mean latency (ns)               : 345678
+50.00 percentile latency (ns)   : 234567
+90.00 percentile latency (ns)   : 456789
+95.00 percentile latency (ns)   : 567890
+97.00 percentile latency (ns)   : 678901
+99.00 percentile latency (ns)   : 789012
+99.90 percentile latency (ns)   : 890123
+
+================================================
+Test Parameters Used
+================================================
+Batch size                      : 32
+Data type                       : INT8
+Dataset                         : ImageNet
+Model                          : ResNet50 v1.5
+Quality target                 : 99%
+Target latency (ns)            : 10000000
+
+Notes: This is a sample result file for testing purposes. 
 
 
 "###,

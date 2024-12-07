@@ -18,7 +18,7 @@ SectionNote: SectionNote = {
 }
 
 SectionTable: SectionTable = {
-    <title:SectionHeader> <_s1:SingleNewLine> <entries:SectionContent> <_s2:SingleNewLine> => {
+    <title:SectionHeader> <_s1:SingleNewLine> <entries:SectionContent> => {
         let entries = build_structure_by_priority(entries);
         println!("entries: {:?}", entries);
         SectionTable {
@@ -29,7 +29,7 @@ SectionTable: SectionTable = {
 }
 
 SectionHeader: String = {
-    <_sep1:SectionSeparator> <_s1:SingleNewLine> <title:Title> <_s2:SingleNewLine> <_sep2:SectionSeparator> => title
+    <_sep1:SectionSeparator> <_s1:SingleNewLine> <title:Title> <_sep2:SectionSeparator> => title
 }
 
 SectionContent: Vec<Message> = {
@@ -45,18 +45,18 @@ SectionSeparator: String = {
 
 
 Entry: Message = {
-    <message:Message> <_s:SingleNewLine> => message
+    <message:Message> => message
 }
 
 Title: String = {
-    <line:Line> => {
+    <line:Line> <_s:SingleNewLine> => {
         println!("TITLE: {}", line);
         line.to_string()
     }
 }
 
 Message: Message = {
-    <line:Line> => {
+    <line:Line> <_s:SingleNewLine> => {
         let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
         println!("MESSAGE: {}, indent_level: {}", line, indent_level);
         Message {
