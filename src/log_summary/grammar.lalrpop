@@ -60,7 +60,7 @@ Message: Message = {
         println!("MESSAGE: {}, indent_level: {}", line, indent_level);
         Message {
             indent_level: indent_level.try_into().unwrap(),
-            message: line.to_string().trim().to_string()
+            message: line.to_string().trim().to_string()    
         }
     }
 }
