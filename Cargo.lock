@@ -354,6 +354,7 @@ version = "0.1.0"
 dependencies = [
  "lalrpop",
  "lalrpop-util",
+ "log",
  "logos",
  "logos-codegen",
  "logos-derive",

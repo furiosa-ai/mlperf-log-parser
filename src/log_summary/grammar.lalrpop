@@ -1,5 +1,6 @@
 use crate::log_summary::model::*;
 use crate::log_summary::lexer::{Lexer, Token, LexicalError};
+use log::{info, trace, warn};
 
 grammar;
 
@@ -20,7 +21,7 @@ SectionNote: SectionNote = {
 SectionTable: SectionTable = {
     <title:SectionHeader> <entries:SectionContent> => {
         let entries = build_structure_by_priority(entries);
-        println!("entries: {:?}", entries);
+        trace!("entries: {:?}", entries);
         SectionTable {
             title,
             entries
@@ -38,7 +39,7 @@ SectionContent: Vec<Message> = {
 
 SectionSeparator: String = {
     <sep:SectionSeparatorLine> => {
-        println!("SECTION SEPARATOR: {}", sep);
+        trace!("SECTION SEPARATOR: {}", sep);
         sep.to_string()
     }
 }
@@ -49,7 +50,7 @@ Entry: Message = {
 
 Title: String = {
     <line:Line> => {
-        println!("TITLE: {}", line);
+        trace!("TITLE: {}", line);
         line.to_string()
     }
 }
@@ -57,7 +58,7 @@ Title: String = {
 Message: Message = {
     <line:Line> => {
         let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
-        println!("MESSAGE: {}, indent_level: {}", line, indent_level);
+        trace!("MESSAGE: {}, indent_level: {}", line, indent_level);
         Message {
             indent_level: indent_level.try_into().unwrap(),
             message: line.to_string().trim().to_string()    
@@ -77,4 +78,3 @@ extern {
         EOF => Token::EOF,
     }
 }
-
