@@ -9,8 +9,8 @@ pub LogSummary: Document = {
 }
 
 Section: Section = {
-    <format:SectionTable> => Section::Table(format),
-    <note:SectionNote> => Section::Note(note)
+    <format:SectionTable> <_s:SingleNewLine+> => Section::Table(format),
+    <note:SectionNote> <_s:SingleNewLine+> => Section::Note(note)
 }
 
 SectionNote: SectionNote = {
