@@ -1,3 +1,4 @@
+use env_logger;
 use mlperf_log_parser::{save_log_detail, save_summary};
 use std::fs;
 use std::path::PathBuf;
@@ -98,6 +99,7 @@ impl std::fmt::Display for Cli {
 }
 
 fn main() {
+    env_logger::init();
     let cli = Cli::from_args();
 
     match &cli {

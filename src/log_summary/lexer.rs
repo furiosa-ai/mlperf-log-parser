@@ -1,4 +1,4 @@
-use log::{info, trace, warn};
+use log::{debug, info, trace, warn};
 use logos::{Logos, SpannedIter};
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
@@ -52,15 +52,13 @@ impl Iterator for Lexer<'_> {
         }
         if let Some((token, span)) = self.token_stream.next() {
             let token = token.ok()?;
-            trace!(
+            debug!(
                 "TOKEN: {:?}, start: {}, end: {}",
-                token,
-                span.start,
-                span.end
+                token, span.start, span.end
             );
             Some(Ok((span.start, token, span.end)))
         } else {
-            trace!("TOKEN EOF");
+            debug!("TOKEN EOF");
             self.eof_encountered = true;
             // EOF 토큰을 수동으로 추가
             Some(Ok((0, Token::EOF, 0)))

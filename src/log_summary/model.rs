@@ -1,3 +1,4 @@
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use serde_value::Value;
 use std::cell::RefCell;
@@ -208,7 +209,7 @@ impl KeyValueEntry {
     }
 
     fn parse_value(&self) -> serde_value::Value {
-        println!("                      value: {:?}", self.value);
+        debug!("         value: {:?}", self.value);
         match &self.value {
             None => serde_value::to_value(None::<String>).unwrap(),
             Some(v) => {

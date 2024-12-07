@@ -1,7 +1,10 @@
+use log::debug;
 use mlperf_log_parser::log_summary::grammar::LogSummaryParser;
 use mlperf_log_parser::log_summary::lexer::Lexer;
 use serde_json;
 use serde_yaml;
+use test_log::test;
+
 #[test]
 fn test_grammar() {
     let mut input = String::from(
@@ -55,7 +58,7 @@ Notes: This is a sample result file for testing purposes.
 "###,
     );
 
-    println!("{}", input);
+    debug!("{}", input);
     if !input.ends_with("\n\n") {
         input.push_str("\n\n");
     }
@@ -63,8 +66,8 @@ Notes: This is a sample result file for testing purposes.
     let tokens = Lexer::new(&input);
     let parser = LogSummaryParser::new();
     let result = parser.parse(tokens);
-    println!("{:?}", result);
+    debug!("{:?}", result);
     let dict = result.unwrap().to_dict();
-    println!("{}", serde_json::to_string_pretty(&dict).unwrap());
-    println!("{}", serde_yaml::to_string(&dict).unwrap());
+    debug!("{}", serde_json::to_string_pretty(&dict).unwrap());
+    debug!("{}", serde_yaml::to_string(&dict).unwrap());
 }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+env_logger = "0.11.5"
 lalrpop-util = { version = "0.22.0", features = ["lexer", "unicode"] }
 log = "0.4.22"
 logos = "0.14.3"
@@ -25,3 +26,7 @@ path = "src/main.rs"
 
 [build-dependencies]
 lalrpop = { version = "0.22.0", features = ["lexer", "unicode"] }
+
+[dev-dependencies]
+env_logger = "0.11.5"
+test-log = "0.2.16"
