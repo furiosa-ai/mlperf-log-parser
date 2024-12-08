@@ -144,7 +144,8 @@ fn test_parse_mlperf_results() {
 
 #[test]
 fn test_mlperf_log_parser() {
-    let log_path = "tests/data/mlper_log_detail.txt";
+    let log_path = "tests/data/mlperf_log_detail.txt";
     let summary = parse_mlperf_log_detail_file(log_path);
+    info!("{:?}", summary);
     assert_eq!(summary.is_ok(), true);
 }

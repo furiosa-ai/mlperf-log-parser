@@ -1,3 +1,4 @@
+use log::warn;
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -18,6 +19,7 @@ pub fn parse_mlperf_log_detail(text: &str) -> io::Result<Vec<MLLogEntry>> {
 
     for (line_no, line) in text.lines().enumerate() {
         if !line.starts_with(":::MLLOG") {
+            warn!("Invalid line[{}]: {}", line_no, line);
             continue;
         }
 
