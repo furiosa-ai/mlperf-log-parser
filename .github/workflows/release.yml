@@ -71,7 +71,7 @@ jobs:
       - name: Install RPM build tools
         if: matrix.packaging == 'rpm'
         run: |
-          dnf install -y rpm-build
+          dnf install -y rpm-build wget curl
 
       - name: Install Rust (${{ matrix.os }}, ${{ matrix.name }})
         uses: actions-rs/toolchain@v1
