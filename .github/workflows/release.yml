@@ -20,14 +20,20 @@ env:
 jobs:
   check-out-branch:
     runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.get_sha.outputs.commit_sha }}
     steps:
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch }}
+      - name: Get commit SHA
+        id: get_sha
+        run: echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
   build-and-package:
     needs: check-out-branch
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       matrix:
         include:
@@ -35,18 +41,22 @@ jobs:
             packaging: tar
             name: alpine
             os: ubuntu-latest
+            container: alpine:latest
           - target: x86_64-unknown-linux-gnu
             packaging: tar
             name: ubuntu
             os: ubuntu-latest
+            container: ubuntu:latest
           - target: x86_64-unknown-linux-gnu
             packaging: rpm
             name: centos
-            os: centos-latest
+            os: ubuntu-latest
+            container: rockylinux:9
           - target: x86_64-apple-darwin
             packaging: tar
             name: macos
             os: macos-latest
+            container: ~
 
     steps:
       - uses: actions/checkout@v3
@@ -70,8 +80,7 @@ jobs:
       - name: Install RPM build tools
         if: matrix.packaging == 'rpm'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y rpm
+          dnf install -y rpm-build
 
       - name: Build
         uses: actions-rs/cargo@v1
