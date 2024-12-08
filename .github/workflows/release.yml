@@ -77,7 +77,7 @@ jobs:
       - name: Install RPM build tools (for CentOS)
         if: matrix.name == 'centos'
         run: |
-          dnf install -y rpm-build wget curl
+          dnf install -y rpm-build wget
 
       - name: Install Rust (${{ matrix.os }}, ${{ matrix.name }})
         uses: actions-rs/toolchain@v1
