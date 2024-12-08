@@ -2,6 +2,14 @@
 name = "mlperf-log-parser"
 version = "0.1.0"
 edition = "2021"
+description = "A tool for parsing MLPerf log files"
+authors = ["pkg@furiosa.ai"]
+license = "MIT"
+repository = "https://github.com/furiosa-ai/mlperf-log-parser"
+readme = "README.md"
+keywords = ["mlperf", "log", "parser", "machine-learning", "benchmarking"]
+categories = ["command-line-utilities", "development-tools", "parsing"]
+
 
 [dependencies]
 env_logger = "0.11.5"
