@@ -79,6 +79,10 @@ jobs:
         run: |
           dnf install -y rpm-build wget gcc
 
+      - name: Update version in Cargo.toml
+        run: |
+          sed -i "s/^version = .*/version = \"${{ github.event.inputs.version }}\"/" Cargo.toml
+
       - name: Install Rust (${{ matrix.os }}, ${{ matrix.name }})
         uses: actions-rs/toolchain@v1
         with:
