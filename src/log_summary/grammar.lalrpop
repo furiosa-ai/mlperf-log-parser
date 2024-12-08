@@ -1,6 +1,6 @@
 use crate::log_summary::model::*;
-use crate::log_summary::lexer::{Lexer, Token, LexicalError};
-use log::{info, trace, warn, debug};
+use crate::log_summary::lexer::{Token, LexicalError};
+use log::debug;
 
 grammar;
 

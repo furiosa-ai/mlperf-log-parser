@@ -1,18 +1,20 @@
-use mlperf_log_parser::{parse_mlperf_log_detail_file, parse_mlperf_results};
+use log::{debug, info};
+use mlperf_log_parser::{parse_mlperf_log_detail_file, parse_mlperf_results_file};
 use serde_value::Value;
-use std::fs;
+use test_log::test;
 
 #[test]
 fn test_parse_mlperf_results() {
-    let test_data = fs::read_to_string("tests/data/mlperf_log_summary.txt")
-        .expect("Failed to read test data file");
+    let test_data_file = "tests/data/mlperf_log_summary.txt";
 
-    let result = parse_mlperf_results(&test_data);
+    let result = parse_mlperf_results_file(&test_data_file).unwrap();
+
+    info!("{:?}", result);
 
     // Test MLPerf Results Summary section
     if let Value::Map(summary) = &result {
         if let Value::Map(mlperf_summary) =
-            &summary[&Value::String("mlperf_result_summary".to_string())]
+            &summary[&Value::String("mlperf_results_summary".to_string())]
         {
             assert_eq!(
                 mlperf_summary[&Value::String("sut_name".to_string())],
@@ -32,23 +34,26 @@ fn test_parse_mlperf_results() {
             );
 
             // Test result status
-            if let Value::Map(result_map) = &mlperf_summary[&Value::String("result".to_string())] {
+            if let Value::Map(result_map) = &mlperf_summary[&Value::String("result_is".to_string())]
+            {
                 assert_eq!(
-                    result_map[&Value::String("state".to_string())],
+                    result_map[&Value::String("value".to_string())],
                     Value::String("VALID".to_string())
                 );
-                assert_eq!(
-                    result_map[&Value::String("min_duration_satisfied".to_string())],
-                    Value::Bool(true)
-                );
-                assert_eq!(
-                    result_map[&Value::String("min_queries_satisfied".to_string())],
-                    Value::Bool(true)
-                );
-                assert_eq!(
-                    result_map[&Value::String("early_stopping_satisfied".to_string())],
-                    Value::Bool(true)
-                );
+                if let Value::Map(details) = &result_map[&Value::String("details".to_string())] {
+                    assert_eq!(
+                        details[&Value::String("min_duration_satisfied".to_string())],
+                        Value::Bool(true)
+                    );
+                    assert_eq!(
+                        details[&Value::String("min_queries_satisfied".to_string())],
+                        Value::Bool(true)
+                    );
+                    assert_eq!(
+                        details[&Value::String("early_stopping_satisfied".to_string())],
+                        Value::Bool(true)
+                    );
+                }
             }
         }
 
@@ -69,27 +74,27 @@ fn test_parse_mlperf_results() {
                 Value::I64(345678)
             );
             assert_eq!(
-                additional_stats[&Value::String("p50_latency_ns".to_string())],
+                additional_stats[&Value::String("50_00_percentile_latency_ns".to_string())],
                 Value::I64(234567)
             );
             assert_eq!(
-                additional_stats[&Value::String("p90_latency_ns".to_string())],
+                additional_stats[&Value::String("90_00_percentile_latency_ns".to_string())],
                 Value::I64(456789)
             );
             assert_eq!(
-                additional_stats[&Value::String("p95_latency_ns".to_string())],
+                additional_stats[&Value::String("95_00_percentile_latency_ns".to_string())],
                 Value::I64(567890)
             );
             assert_eq!(
-                additional_stats[&Value::String("p97_latency_ns".to_string())],
+                additional_stats[&Value::String("97_00_percentile_latency_ns".to_string())],
                 Value::I64(678901)
             );
             assert_eq!(
-                additional_stats[&Value::String("p99_latency_ns".to_string())],
+                additional_stats[&Value::String("99_00_percentile_latency_ns".to_string())],
                 Value::I64(789012)
             );
             assert_eq!(
-                additional_stats[&Value::String("p999_latency_ns".to_string())],
+                additional_stats[&Value::String("99_90_percentile_latency_ns".to_string())],
                 Value::I64(890123)
             );
         }
@@ -124,11 +129,11 @@ fn test_parse_mlperf_results() {
             );
         }
 
-        // Test message section
-        if let Value::Seq(messages) = &summary[&Value::String("message".to_string())] {
-            assert_eq!(messages.len(), 1);
+        // Test note section
+        if let Value::Seq(notes) = &summary[&Value::String("note".to_string())] {
+            assert_eq!(notes.len(), 1);
             assert_eq!(
-                messages[0],
+                notes[0],
                 Value::String(
                     "Notes: This is a sample result file for testing purposes.".to_string()
                 )

@@ -1,5 +1,5 @@
 use env_logger;
-use mlperf_log_parser::{save_log_detail, save_summary};
+use mlperf_log_parser::{log_detail::save_log_detail, log_summary::save_summary};
 use std::fs;
 use std::path::PathBuf;
 use std::process;

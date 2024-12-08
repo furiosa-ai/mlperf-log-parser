@@ -1,4 +1,4 @@
-use log::{debug, info, trace, warn};
+use log::debug;
 use logos::{Logos, SpannedIter};
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;

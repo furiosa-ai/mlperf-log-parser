@@ -1,4 +1,4 @@
-use log::{debug, info};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_value::Value;
 use std::cell::RefCell;
@@ -46,7 +46,7 @@ pub fn build_structure_by_priority(entries: Vec<Message>) -> Vec<SectionEntry> {
     for entry in entries {
         // 현재 엔트리보다 들여쓰기가 크거나 같은 스택의 엔트리들 제거
         while let Some(last_entry) = stack.last() {
-            if last_entry.borrow().message.indent_level >= entry.indent_level {
+            if last_entry.borrow().message.priority() >= entry.priority() {
                 stack.pop();
             } else {
                 break;
@@ -101,13 +101,8 @@ pub struct Message {
 }
 
 impl Message {
-    fn to_dict(&self) -> HashMap<String, serde_value::Value> {
-        let mut map = HashMap::new();
-        map.insert(
-            "message".to_string(),
-            serde_value::Value::String(self.message.clone()),
-        );
-        map
+    fn priority(&self) -> i32 {
+        self.indent_level
     }
 }
 
@@ -118,13 +113,6 @@ pub enum Entry {
 }
 
 impl Entry {
-    fn priority(&self) -> i32 {
-        match self {
-            Entry::Message(m) => m.indent_level,
-            Entry::KeyValue(k) => k.indent_level,
-        }
-    }
-
     fn to_dict(
         &self,
         details: Option<HashMap<String, serde_value::Value>>,
