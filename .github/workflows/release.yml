@@ -63,6 +63,16 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
+      - name: Install musl-tools (for Alpine)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apk add curl gcc musl-dev
+      
+      - name: Install RPM build tools
+        if: matrix.packaging == 'rpm'
+        run: |
+          dnf install -y rpm-build
+
       - name: Install Rust (${{ matrix.os }}, ${{ matrix.name }})
         uses: actions-rs/toolchain@v1
         with:
@@ -70,16 +80,6 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
           override: true
-
-      - name: Install musl-tools (for Alpine)
-        if: matrix.target == 'x86_64-unknown-linux-musl'
-        run: |
-          sudo apk add curl gcc musl-dev
-
-      - name: Install RPM build tools
-        if: matrix.packaging == 'rpm'
-        run: |
-          dnf install -y rpm-build
 
       - name: Build
         uses: actions-rs/cargo@v1
