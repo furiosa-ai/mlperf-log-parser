@@ -7,10 +7,12 @@ on:
         description: '릴리스 버전 (예: 1.0.0)'
         required: true
         type: string
+        default: '4.1.0'
       branch:
         description: '릴리스 브랜치 이름 (예: release-1.0.0)'
         required: true
         type: string
+        default: 'main'
 
 env:
   RELEASE_VERSION: ${{ github.event.inputs.version }}
