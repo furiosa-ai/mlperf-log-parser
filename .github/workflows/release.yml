@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl  # Alpine Linux
+          - x86_64-unknown-linux-gnu   # Ubuntu/Debian
+          - x86_64-unknown-linux-gnu   # RPM (CentOS/RHEL/Fedora)
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Install musl-tools (for Alpine)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Install RPM build tools
+        if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.packaging == 'rpm'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Create RPM spec file
+        if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.packaging == 'rpm'
+        run: |
+          cat > mlperf-log-parser.spec << EOF
+          Name:           mlperf-log-parser
+          Version:        $(echo $GITHUB_REF | cut -d / -f 3 | sed 's/v//')
+          Release:        1%{?dist}
+          Summary:        MLPerf Log Parser Tool
+          
+          License:        MIT
+          URL:            https://github.com/$GITHUB_REPOSITORY
+          
+          %description
+          A tool for parsing MLPerf log files
+          
+          %install
+          mkdir -p %{buildroot}%{_bindir}
+          install -m 755 target/x86_64-unknown-linux-gnu/release/mlperf-log-parser %{buildroot}%{_bindir}/mlperf-log-parser
+          
+          %files
+          %{_bindir}/mlperf-log-parser
+          
+          %changelog
+          * $(date '+%a %b %d %Y') GitHub Action <action@github.com> - $(echo $GITHUB_REF | cut -d / -f 3 | sed 's/v//')-1
+          - Automated RPM release
+          EOF
+
+      - name: Build RPM package
+        if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.packaging == 'rpm'
+        run: |
+          mkdir -p ~/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
+          cp mlperf-log-parser.spec ~/rpmbuild/SPECS/
+          rpmbuild -bb ~/rpmbuild/SPECS/mlperf-log-parser.spec
+          cp ~/rpmbuild/RPMS/x86_64/*.rpm ./mlperf-log-parser-centos-x86_64.rpm
+
+      - name: Package Binary
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-musl" ]]; then
+            tar czf ../../../mlperf-log-parser-alpine-x86_64.tar.gz mlperf-log-parser
+          elif [[ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" && "${{ matrix.packaging }}" != "rpm" ]]; then
+            tar czf ../../../mlperf-log-parser-ubuntu-x86_64.tar.gz mlperf-log-parser
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            mlperf-log-parser-alpine-x86_64.tar.gz
+            mlperf-log-parser-ubuntu-x86_64.tar.gz
+            mlperf-log-parser-centos-x86_64.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

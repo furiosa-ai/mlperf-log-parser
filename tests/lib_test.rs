@@ -1,4 +1,4 @@
-use log::{debug, info};
+use log::info;
 use mlperf_log_parser::{parse_mlperf_log_detail_file, parse_mlperf_results_file};
 use serde_value::Value;
 use test_log::test;
