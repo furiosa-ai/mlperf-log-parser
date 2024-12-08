@@ -20,9 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Checkout Branch
-        run: |
-          git checkout ${{ github.event.inputs.branch }}
+        with:
+          ref: ${{ github.event.inputs.branch }}
 
   build-and-release:
     needs: check-out-branch
