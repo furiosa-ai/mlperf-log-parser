@@ -63,7 +63,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - name: Install Rust
+      - name: Install Rust (${{ matrix.os }}-${{ matrix.name }})
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
