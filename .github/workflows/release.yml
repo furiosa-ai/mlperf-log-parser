@@ -72,12 +72,12 @@ jobs:
         if: matrix.name == 'ubuntu'
         run: |
           apt-get update
-          apt-get install -y rpm wget curl
+          apt-get install -y rpm wget curl build-essential
       
       - name: Install RPM build tools (for CentOS)
         if: matrix.name == 'centos'
         run: |
-          dnf install -y rpm-build wget
+          dnf install -y rpm-build wget gcc
 
       - name: Install Rust (${{ matrix.os }}, ${{ matrix.name }})
         uses: actions-rs/toolchain@v1
@@ -87,7 +87,7 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Build
+      - name: Build (${{ matrix.os }}, ${{ matrix.name }})
         uses: actions-rs/cargo@v1
         with:
           command: build
