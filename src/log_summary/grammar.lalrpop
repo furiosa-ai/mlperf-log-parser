@@ -1,5 +1,5 @@
 use crate::log_summary::model::*;
-use crate::log_summary::lexer::{Token, LexicalError};
+use crate::log_summary::lexer::{Token, LexicalError, SourceLocation};
 use log::debug;
 
 grammar;
@@ -39,8 +39,8 @@ SectionContent: Vec<Message> = {
 
 SectionSeparator: String = {
     <sep:SectionSeparatorLine> => {
-        debug!("SECTION SEPARATOR: {}", sep);
-        sep.to_string()
+        debug!("SECTION SEPARATOR: {:?}", sep);
+        sep.source.to_string()
     }
 }
 
@@ -50,18 +50,18 @@ Entry: Message = {
 
 Title: String = {
     <line:Line> => {
-        debug!("TITLE: {}", line);
-        line.to_string()
+        debug!("TITLE: {}", line.source);
+        line.source.to_string()
     }
 }
 
 Message: Message = {
     <line:Line> => {
-        let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
-        debug!("MESSAGE: {}, indent_level: {}", line, indent_level);
+        let indent_level = line.source.to_string().chars().take_while(|c| *c == ' ').count();
+        debug!("MESSAGE: {:?}, indent_level: {}", line, indent_level);
         Message {
             indent_level: indent_level.try_into().unwrap(),
-            message: line.to_string().trim().to_string()    
+            message: line.source.to_string().trim().to_string()    
         }
     }
 }
@@ -72,9 +72,9 @@ extern {
     type Error = LexicalError;
 
     enum Token {
-        SectionSeparatorLine => Token::SectionSeparatorLine(<String>),
-        Line => Token::Line(<String>),
-        EndOfSection => Token::EndOfSection(<String>),
+        SectionSeparatorLine => Token::SectionSeparatorLine(<SourceLocation>),
+        Line => Token::Line(<SourceLocation>),
+        EndOfSection => Token::EndOfSection(<SourceLocation>),
         EOF => Token::EOF,
     }
 }
