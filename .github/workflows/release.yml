@@ -41,6 +41,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -71,6 +73,7 @@ jobs:
       - name: Create RPM spec file
         if: matrix.packaging == 'rpm'
         run: |
+          BINARY_PATH="$(pwd)/target/x86_64-unknown-linux-gnu/release/mlperf-log-parser"
           cat > mlperf-log-parser.spec << EOF
           Name:           mlperf-log-parser
           Version:        ${{ env.RELEASE_VERSION }}
@@ -85,7 +88,7 @@ jobs:
           
           %install
           mkdir -p %{buildroot}%{_bindir}
-          install -m 755 target/x86_64-unknown-linux-gnu/release/mlperf-log-parser %{buildroot}%{_bindir}/mlperf-log-parser
+          install -m 755 ${BINARY_PATH} %{buildroot}%{_bindir}/mlperf-log-parser
           
           %files
           %{_bindir}/mlperf-log-parser
@@ -100,7 +103,7 @@ jobs:
         run: |
           mkdir -p ~/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
           cp mlperf-log-parser.spec ~/rpmbuild/SPECS/
-          rpmbuild -bb ~/rpmbuild/SPECS/mlperf-log-parser.spec
+          rpmbuild -bb ~/rpmbuild/SPECS/mlperf-log-parser.spec --define "_topdir $HOME/rpmbuild" --define "_builddir $(pwd)"
           cp ~/rpmbuild/RPMS/x86_64/*.rpm ./mlperf-log-parser-${{ matrix.name }}-x86_64.rpm
 
       - name: Package Binary
@@ -117,13 +120,15 @@ jobs:
           files: |
             mlperf-log-parser-*-x86_64.*
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create-tag:
     runs-on: ubuntu-latest
     needs: build-and-release
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
       - name: Create Release Tag
         run: |
           git tag v${{ env.RELEASE_VERSION }}
