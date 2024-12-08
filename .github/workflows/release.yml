@@ -25,7 +25,7 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-  build-and-release:
+  build-and-package:
     needs: check-out-branch
     runs-on: ubuntu-latest
     strategy:
@@ -113,6 +113,26 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../mlperf-log-parser-${{ matrix.name }}-x86_64.tar.gz mlperf-log-parser
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-artifacts-${{ matrix.name }}
+          path: mlperf-log-parser-*-x86_64.*
+          retention-days: 1
+
+  create-release:
+    needs: build-and-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Move artifacts to root
+        run: |
+          find artifacts -type f -name "mlperf-log-parser-*-x86_64.*" -exec mv {} . \;
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
