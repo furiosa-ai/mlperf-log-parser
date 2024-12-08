@@ -1,0 +1,80 @@
+use crate::log_summary::model::*;
+use crate::log_summary::lexer::{Token, LexicalError};
+use log::debug;
+
+grammar;
+
+// Grammar
+pub LogSummary: Document = {
+    <_eos:EndOfSection*> <sections:Section*> <_e:EOF> => Document { sections },
+}
+
+Section: Section = {
+    <format:SectionTable> <_s:EndOfSection> => Section::Table(format),
+    <note:SectionNote> <_s:EndOfSection> => Section::Note(note)
+}
+
+SectionNote: SectionNote = {
+    <entry:Message> => SectionNote { message: entry }
+}
+
+SectionTable: SectionTable = {
+    <title:SectionHeader> <entries:SectionContent> => {
+        let entries = build_structure_by_priority(entries);
+        debug!("entries: {:?}", entries);
+        SectionTable {
+            title,
+            entries
+        }
+    }
+}
+
+SectionHeader: String = {
+    <_sep1:SectionSeparator> <title:Title> <_sep2:SectionSeparator> => title
+}
+
+SectionContent: Vec<Message> = {
+    <entry:Entry*> => entry.into_iter().collect()
+}
+
+SectionSeparator: String = {
+    <sep:SectionSeparatorLine> => {
+        debug!("SECTION SEPARATOR: {}", sep);
+        sep.to_string()
+    }
+}
+
+Entry: Message = {
+    <message:Message> => message
+}
+
+Title: String = {
+    <line:Line> => {
+        debug!("TITLE: {}", line);
+        line.to_string()
+    }
+}
+
+Message: Message = {
+    <line:Line> => {
+        let indent_level = line.to_string().chars().take_while(|c| *c == ' ').count();
+        debug!("MESSAGE: {}, indent_level: {}", line, indent_level);
+        Message {
+            indent_level: indent_level.try_into().unwrap(),
+            message: line.to_string().trim().to_string()    
+        }
+    }
+}
+
+// Token Priority
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum Token {
+        SectionSeparatorLine => Token::SectionSeparatorLine(<String>),
+        Line => Token::Line(<String>),
+        EndOfSection => Token::EndOfSection(<String>),
+        EOF => Token::EOF,
+    }
+}
