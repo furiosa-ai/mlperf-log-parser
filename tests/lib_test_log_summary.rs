@@ -12,45 +12,55 @@ fn test_grammar() {
 ================================================
 MLPerf Results Summary
 ================================================
-SUT name : BERT SUT
+SUT name : GPT-J SUT
 Scenario : Offline
-Mode : PerformanceOnly
-  Min duration satisfied : NO
+Mode     : PerformanceOnly
+Samples per second: 9.25841
+Tokens per second (inferred): 638.83
+Result is : VALID
+  Min duration satisfied : Yes
   Min queries satisfied : Yes
-    Further details : NOT REQUIRED
-    This is a message
-      MyKey : MyValue
-    This is a message ==== 2
   Early stopping satisfied: Yes
-Recommendations:
- * Increase expected QPS so the loadgen pre-generates a larger (coalesced) query.
-TOP Message
 
 ================================================
 Additional Stats
 ================================================
-Min latency (ns)                : 123456
-Max latency (ns)                : 789012
-Mean latency (ns)               : 345678
-50.00 percentile latency (ns)   : 234567
-90.00 percentile latency (ns)   : 456789
-95.00 percentile latency (ns)   : 567890
-97.00 percentile latency (ns)   : 678901
-99.00 percentile latency (ns)   : 789012
-99.90 percentile latency (ns)   : 890123
+Min latency (ns)                : 8740448339
+Max latency (ns)                : 1443876288808
+Mean latency (ns)               : 729202473042
+50.00 percentile latency (ns)   : 729112772963
+90.00 percentile latency (ns)   : 1302950749196
+95.00 percentile latency (ns)   : 1374489698221
+97.00 percentile latency (ns)   : 1402380862634
+99.00 percentile latency (ns)   : 1431532216788
+99.90 percentile latency (ns)   : 1440960003323
 
 ================================================
 Test Parameters Used
 ================================================
-Batch size                      : 32
-Data type                       : INT8
-Dataset                         : ImageNet
-Model                          : ResNet50 v1.5
-Quality target                 : 99%
-Target latency (ns)            : 10000000
+samples_per_query : 13368
+target_qps : 1
+target_latency (ns): 0
+max_async_queries : 1
+min_duration (ms): 600000
+max_duration (ms): 0
+min_query_count : 1
+max_query_count : 0
+qsl_rng_seed : 3066443479025735752
+sample_index_rng_seed : 10688027786191513374
+schedule_rng_seed : 14962580496156340209
+accuracy_log_rng_seed : 0
+accuracy_log_probability : 0
+accuracy_log_sampling_target : 0
+print_timestamps : 0
+performance_issue_unique : 0
+performance_issue_same : 0
+performance_issue_same_index : 0
+performance_sample_count : 13368
 
-Notes: This is a sample result file for testing purposes. 
+No warnings encountered during test.
 
+No errors encountered during test.
 
 "###,
     );

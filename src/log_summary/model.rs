@@ -208,6 +208,10 @@ impl KeyValueEntry {
                     Value::Bool(false)
                 } else if let Ok(num) = low_value.parse::<i64>() {
                     Value::I64(num)
+                } else if let Ok(num) = low_value.parse::<u64>() {
+                    Value::U64(num)
+                } else if let Ok(f) = low_value.parse::<f32>() {
+                    Value::F32(f)
                 } else if let Ok(f) = low_value.parse::<f64>() {
                     Value::F64(f)
                 } else {
