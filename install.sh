@@ -4,6 +4,7 @@
 REPO="furiosa-ai/mlperf-log-parser"
 BINARY_NAME="mlperf-log-parser"
 PACKAGE_NAME=""
+TAG_VERSION="4.1.0"
 
 OS_TYPE=$(uname -s)
 
@@ -12,6 +13,7 @@ case $OS_TYPE in
         # 리눅스 배포판 감지
         if [ -f /etc/os-release ]; then
             . /etc/os-release
+            echo "ID: $ID"
             case $ID in
                 alpine)
                     PACKAGE_NAME="mlperf-log-parser-alpine-x86_64.tar.gz"
@@ -42,10 +44,12 @@ case $OS_TYPE in
 esac
 
 # 최신 릴리스 URL 가져오기
-LATEST_RELEASE_URL="https://api.github.com/repos/$REPO/releases/latest"
-DOWNLOAD_URL=$(curl -s $LATEST_RELEASE_URL | grep "browser_download_url.*${PACKAGE_NAME}" | cut -d '"' -f 4)
+#LATEST_RELEASE_URL="https://api.github.com/repos/$REPO/releases/latest"
+#echo "LATEST_RELEASE_URL: $LATEST_RELEASE_URL"
+#DOWNLOAD_URL=$(curl -s $LATEST_RELEASE_URL | grep "browser_download_url.*${PACKAGE_NAME}" | cut -d '"' -f 4)
 
-echo "DOWNLOAD_URL: $DOWNLOAD_URL"
+DOWNLOAD_URL="https://github.com/furiosa-ai/mlperf-log-parser/releases/download/v${TAG_VERSION}/${PACKAGE_NAME}"
+
 if [ -z "$DOWNLOAD_URL" ]; then
     echo "오류: 감지된 OS에 대한 최신 릴리스 다운로드 URL을 찾을 수 없습니다"
     exit 1
@@ -67,9 +71,9 @@ if [[ "$PACKAGE_NAME" == *".tar.gz" ]]; then
 
     echo "$BINARY_PATH 설치 중"
     chmod +x $BINARY_PATH
-    sudo mv $BINARY_PATH /usr/local/bin/
+    mv $BINARY_PATH /usr/local/bin/
 elif [[ "$PACKAGE_NAME" == *".rpm" ]]; then
-    sudo rpm -i $PACKAGE_NAME
+    rpm -i $PACKAGE_NAME
 fi
 
 # 임시 디렉토리 정리
