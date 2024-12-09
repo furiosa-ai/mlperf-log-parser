@@ -45,6 +45,7 @@ esac
 LATEST_RELEASE_URL="https://api.github.com/repos/$REPO/releases/latest"
 DOWNLOAD_URL=$(curl -s $LATEST_RELEASE_URL | grep "browser_download_url.*${PACKAGE_NAME}" | cut -d '"' -f 4)
 
+echo "DOWNLOAD_URL: $DOWNLOAD_URL"
 if [ -z "$DOWNLOAD_URL" ]; then
     echo "오류: 감지된 OS에 대한 최신 릴리스 다운로드 URL을 찾을 수 없습니다"
     exit 1
