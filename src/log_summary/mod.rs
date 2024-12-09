@@ -7,7 +7,6 @@ use lexer::Lexer;
 use model::Document;
 use serde_value::Value;
 use std::fs;
-use std::fs::File;
 use std::io;
 
 pub fn parse_log_summary(log_summary: &str) -> Result<Document, String> {
@@ -71,25 +70,26 @@ pub fn parse_mlperf_results_file(input_file: &str) -> io::Result<Value> {
     }
 }
 
-pub fn save_summary_as_json(input_file: &str, output_file: &str) -> io::Result<()> {
+pub fn save_summary_as_json<W: io::Write>(input_file: &str, writer: &mut W) -> io::Result<()> {
     let summary = parse_mlperf_results_file(input_file)?;
-    let mut output = File::create(output_file)?;
-    serde_json::to_writer_pretty(&mut output, &summary)?;
+    serde_json::to_writer_pretty(writer, &summary)?;
     Ok(())
 }
 
-pub fn save_summary_as_yaml(input_file: &str, output_file: &str) -> io::Result<()> {
+pub fn save_summary_as_yaml<W: io::Write>(input_file: &str, writer: &mut W) -> io::Result<()> {
     let summary = parse_mlperf_results_file(input_file)?;
-    let mut output = File::create(output_file)?;
-    serde_yaml::to_writer(&mut output, &summary)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    serde_yaml::to_writer(writer, &summary).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     Ok(())
 }
 
-pub fn save_summary(input_file: &str, output_file: &str, format: &str) -> io::Result<()> {
+pub fn save_summary<W: io::Write>(
+    input_file: &str,
+    writer: &mut W,
+    format: &str,
+) -> io::Result<()> {
     match format {
-        "json" => save_summary_as_json(input_file, output_file),
-        "yaml" => save_summary_as_yaml(input_file, output_file),
+        "json" => save_summary_as_json(input_file, writer),
+        "yaml" => save_summary_as_yaml(input_file, writer),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Invalid format. Use 'json' or 'yaml'.",

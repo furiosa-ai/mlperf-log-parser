@@ -77,25 +77,26 @@ pub fn parse_mlperf_log_detail_file(file_path: &str) -> io::Result<Vec<MLLogEntr
     parse_mlperf_log_detail(&text)
 }
 
-pub fn save_log_detail_as_json(input_file: &str, output_file: &str) -> io::Result<()> {
+pub fn save_log_detail_as_json<W: io::Write>(input_file: &str, output: &mut W) -> io::Result<()> {
     let entries = parse_mlperf_log_detail_file(input_file)?;
-    let mut output = File::create(output_file)?;
-    serde_json::to_writer_pretty(&mut output, &entries)?;
+    serde_json::to_writer_pretty(output, &entries)?;
     Ok(())
 }
 
-pub fn save_log_detail_as_yaml(input_file: &str, output_file: &str) -> io::Result<()> {
+pub fn save_log_detail_as_yaml<W: io::Write>(input_file: &str, output: &mut W) -> io::Result<()> {
     let entries = parse_mlperf_log_detail_file(input_file)?;
-    let mut output = File::create(output_file)?;
-    serde_yaml::to_writer(&mut output, &entries)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    serde_yaml::to_writer(output, &entries).map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     Ok(())
 }
 
-pub fn save_log_detail(input_file: &str, output_file: &str, format: &str) -> io::Result<()> {
+pub fn save_log_detail<W: io::Write>(
+    input_file: &str,
+    output: &mut W,
+    format: &str,
+) -> io::Result<()> {
     match format {
-        "json" => save_log_detail_as_json(input_file, output_file),
-        "yaml" => save_log_detail_as_yaml(input_file, output_file),
+        "json" => save_log_detail_as_json(input_file, output),
+        "yaml" => save_log_detail_as_yaml(input_file, output),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Invalid format. Use 'json' or 'yaml'.",

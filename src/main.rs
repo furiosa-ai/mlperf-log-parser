@@ -1,6 +1,7 @@
 use env_logger;
 use mlperf_log_parser::{log_detail::save_log_detail, log_summary::save_summary};
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 use std::process;
 use structopt::StructOpt;
@@ -64,7 +65,7 @@ pub enum Cli {
         #[structopt(parse(from_os_str), validator = validate_summary_input_file)]
         input_file: PathBuf,
 
-        /// Output file path (.json | .yaml file)
+        /// Output file path (.json | .yaml file | - for stdout)
         #[structopt(parse(from_os_str))]
         output_file: PathBuf,
 
@@ -108,40 +109,70 @@ fn main() {
             output_file,
             format,
         } => {
-            if let Err(e) = save_summary(
-                input_file.to_str().unwrap(),
-                output_file.to_str().unwrap(),
-                format,
-            ) {
-                eprintln!("Error: {}", e);
-                process::exit(1);
+            let output_path = output_file.to_str().unwrap();
+            if output_path == "-" {
+                // 표준출력으로 결과 전송
+                let stdout = io::stdout();
+                let mut handle = io::BufWriter::new(stdout);
+                if let Err(e) = save_summary(input_file.to_str().unwrap(), &mut handle, format) {
+                    eprintln!("Error: {}", e);
+                    process::exit(1);
+                }
+            } else {
+                // 파일로 저장
+                let mut file = match fs::File::create(output_path) {
+                    Ok(file) => file,
+                    Err(e) => {
+                        eprintln!("Error: {}", e);
+                        process::exit(1);
+                    }
+                };
+                if let Err(e) = save_summary(input_file.to_str().unwrap(), &mut file, format) {
+                    eprintln!("Error: {}", e);
+                    process::exit(1);
+                }
+                eprintln!(
+                    "Command {} parsed {} file and saved to {}",
+                    cli.to_string(),
+                    input_file.display(),
+                    output_file.display()
+                );
             }
-            println!(
-                "Command {} parsed {} file and saved to {}",
-                cli.to_string(),
-                input_file.display(),
-                output_file.display()
-            );
         }
         Cli::LogDetail {
             input_file,
             output_file,
             format,
         } => {
-            if let Err(e) = save_log_detail(
-                input_file.to_str().unwrap(),
-                output_file.to_str().unwrap(),
-                format,
-            ) {
-                eprintln!("Error: {}", e);
-                process::exit(1);
+            let output_path = output_file.to_str().unwrap();
+            if output_path == "-" {
+                // 표준출력으로 결과 전송
+                let stdout = io::stdout();
+                let mut handle = io::BufWriter::new(stdout);
+                if let Err(e) = save_log_detail(input_file.to_str().unwrap(), &mut handle, format) {
+                    eprintln!("Error: {}", e);
+                    process::exit(1);
+                }
+            } else {
+                // 파일로 저장
+                let mut file = match fs::File::create(output_path) {
+                    Ok(file) => file,
+                    Err(e) => {
+                        eprintln!("Error: {}", e);
+                        process::exit(1);
+                    }
+                };
+                if let Err(e) = save_log_detail(input_file.to_str().unwrap(), &mut file, format) {
+                    eprintln!("Error: {}", e);
+                    process::exit(1);
+                }
+                eprintln!(
+                    "Command {} parsed {} file and saved to {}",
+                    cli.to_string(),
+                    input_file.display(),
+                    output_file.display()
+                );
             }
-            println!(
-                "Command {} parsed {} file and saved to {}",
-                cli.to_string(),
-                input_file.display(),
-                output_file.display()
-            );
         }
     }
 }
